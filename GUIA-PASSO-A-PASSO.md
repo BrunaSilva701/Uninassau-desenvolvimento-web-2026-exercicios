@@ -481,7 +481,7 @@ git push origin main
 
 ### P: Como ver o ranking?
 
-**Leaderboard:** https://barretop15.me/desenvolvimento-web-2026-exercicios/leaderboard.html
+**Leaderboard:** https://petrosbarreto.github.io/desenvolvimento-web-2026-exercicios/leaderboard.html
 
 Atualiza automaticamente a cada 5 minutos! 🏆
 
