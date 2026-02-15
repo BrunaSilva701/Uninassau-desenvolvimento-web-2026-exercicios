@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 📚 Documentação
+    url: https://github.com/petrosbarreto/desenvolvimento-web-2026-exercicios/blob/main/README.md
+    about: Leia a documentação completa do sistema
+  - name: 🏆 Leaderboard
+    url: https://barretop15.me/desenvolvimento-web-2026-exercicios/leaderboard.html
+    about: Veja o ranking dos alunos
+  - name: 💬 Discord da Turma
+    url: #
+    about: Entre no Discord para conversar com colegas

@@ -10,6 +10,11 @@
 
 Este repositório usa **GitHub Actions** para validar automaticamente seus exercícios!
 
+### 📖 Guias Completos
+
+- **[🎓 Guia Passo a Passo](GUIA-PASSO-A-PASSO.md)** - Tutorial detalhado para iniciantes
+- **[⚡ Guia Rápido](GUIA-RAPIDO.md)** - Resumo de 5 minutos
+
 ### Para Alunos
 
 1. **Fork** este repositório
@@ -22,6 +27,8 @@ Este repositório usa **GitHub Actions** para validar automaticamente seus exerc
 8. Veja o **feedback** nos comentários do PR
 9. Corrija se necessário e faça novo push
 10. Quando aprovado, o professor fará o merge
+
+**💡 Dúvidas?** [Abrir Issue](https://github.com/petrosbarreto/desenvolvimento-web-2026-exercicios/issues/new/choose)
 
 ---
 
