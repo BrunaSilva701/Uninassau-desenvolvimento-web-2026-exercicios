@@ -202,19 +202,20 @@ npm run validate:all aula01
 
 ---
 
-## 🏆 Ranking (Top 10)
+## 🏆 Ranking dos Alunos
 
-O bot mantém um ranking dos melhores alunos:
+O bot mantém um ranking automático dos melhores alunos!
 
+**[📊 Ver Ranking Completo →](RANKING.md)**
+
+### Top 3 (prévia)
 ```
-🥇 Maria Silva    - 98.5 pontos (4 exercícios)
-🥈 João Santos    - 95.2 pontos (4 exercícios)
-🥉 Ana Costa      - 92.8 pontos (3 exercícios)
-4️⃣  Pedro Lima     - 90.1 pontos (4 exercícios)
-5️⃣  Julia Oliveira - 88.7 pontos (3 exercícios)
+🥇 Aguardando submissões...
+🥈 
+🥉 
 ```
 
-Atualizado toda segunda-feira!
+**Atualização:** Toda segunda-feira às 00:00 UTC
 
 ---
 

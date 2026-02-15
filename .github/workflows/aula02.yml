@@ -1,0 +1,334 @@
+name: Validar Exercício - Aula 02
+
+on:
+  pull_request:
+    paths:
+      - 'exercicios/aula02/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'exercicios/aula02/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Instalar dependências
+        run: npm install html-validate eslint
+      
+      - name: Validar arquivos existem
+        id: check-files
+        run: |
+          SCORE=0
+          ERRORS=""
+          
+          if [ -f "exercicios/aula02/index.html" ]; then
+            echo "✅ index.html existe"
+            SCORE=$((SCORE + 10))
+          else
+            echo "❌ index.html não encontrado"
+            ERRORS="${ERRORS}\n- Falta arquivo index.html"
+          fi
+          
+          if [ -f "exercicios/aula02/style.css" ]; then
+            echo "✅ style.css existe"
+            SCORE=$((SCORE + 10))
+          else
+            echo "❌ style.css não encontrado"
+            ERRORS="${ERRORS}\n- Falta arquivo style.css"
+          fi
+          
+          if [ -f "exercicios/aula02/script.js" ]; then
+            echo "✅ script.js existe"
+            SCORE=$((SCORE + 10))
+          else
+            echo "❌ script.js não encontrado"
+            ERRORS="${ERRORS}\n- Falta arquivo script.js"
+          fi
+          
+          echo "score=$SCORE" >> $GITHUB_OUTPUT
+          echo "errors<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$ERRORS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      
+      - name: Validar HTML
+        id: validate-html
+        run: |
+          FILE="exercicios/aula02/index.html"
+          SCORE=0
+          ERRORS=""
+          
+          # Link CSS externo
+          if grep -q '<link rel="stylesheet"' "$FILE"; then
+            echo "✅ CSS externo linkado"
+            SCORE=$((SCORE + 5))
+          else
+            ERRORS="${ERRORS}\n- CSS não está linkado externamente"
+          fi
+          
+          # Script JS externo
+          if grep -q '<script src=' "$FILE"; then
+            echo "✅ JavaScript externo linkado"
+            SCORE=$((SCORE + 5))
+          else
+            ERRORS="${ERRORS}\n- JavaScript não está linkado externamente"
+          fi
+          
+          # Botão carregar
+          if grep -q 'btn-carregar' "$FILE"; then
+            echo "✅ Botão carregar presente"
+            SCORE=$((SCORE + 5))
+          else
+            ERRORS="${ERRORS}\n- Falta botão de carregar usuários"
+          fi
+          
+          # Formulário
+          if grep -q '<form' "$FILE"; then
+            echo "✅ Formulário presente"
+            SCORE=$((SCORE + 5))
+          else
+            ERRORS="${ERRORS}\n- Falta formulário"
+          fi
+          
+          # Área de resultados
+          if grep -q 'usuarios-container' "$FILE"; then
+            echo "✅ Container de usuários presente"
+            SCORE=$((SCORE + 5))
+          else
+            ERRORS="${ERRORS}\n- Falta div para exibir usuários"
+          fi
+          
+          # Info requisição
+          if grep -q 'info-metodo' "$FILE" && grep -q 'info-status' "$FILE"; then
+            echo "✅ Área de informações presente"
+            SCORE=$((SCORE + 5))
+          else
+            ERRORS="${ERRORS}\n- Falta área para exibir info da requisição"
+          fi
+          
+          echo "score=$SCORE" >> $GITHUB_OUTPUT
+          echo "errors<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$ERRORS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      
+      - name: Validar JavaScript
+        id: validate-js
+        run: |
+          FILE="exercicios/aula02/script.js"
+          SCORE=0
+          ERRORS=""
+          
+          # Fetch usado
+          if grep -q 'fetch(' "$FILE"; then
+            echo "✅ Fetch API usado"
+            SCORE=$((SCORE + 10))
+          else
+            echo "❌ Fetch API não encontrado"
+            ERRORS="${ERRORS}\n- Use fetch() para requisições HTTP"
+          fi
+          
+          # Async/await
+          if grep -q 'async' "$FILE" && grep -q 'await' "$FILE"; then
+            echo "✅ Async/await implementado"
+            SCORE=$((SCORE + 10))
+          else
+            ERRORS="${ERRORS}\n- Use async/await nas funções"
+          fi
+          
+          # Try/catch
+          if grep -q 'try {' "$FILE" && grep -q 'catch' "$FILE"; then
+            echo "✅ Tratamento de erros implementado"
+            SCORE=$((SCORE + 10))
+          else
+            ERRORS="${ERRORS}\n- Adicione try/catch para tratar erros"
+          fi
+          
+          # Função carregarUsuarios
+          if grep -q 'function carregarUsuarios' "$FILE" || grep -q 'carregarUsuarios.*=' "$FILE"; then
+            echo "✅ Função carregarUsuarios existe"
+            SCORE=$((SCORE + 5))
+          else
+            ERRORS="${ERRORS}\n- Implemente função carregarUsuarios()"
+          fi
+          
+          # Função criarPost
+          if grep -q 'function criarPost' "$FILE" || grep -q 'criarPost.*=' "$FILE"; then
+            echo "✅ Função criarPost existe"
+            SCORE=$((SCORE + 5))
+          else
+            ERRORS="${ERRORS}\n- Implemente função criarPost()"
+          fi
+          
+          # Event listeners
+          if grep -q 'addEventListener' "$FILE"; then
+            echo "✅ Event listeners adicionados"
+            SCORE=$((SCORE + 5))
+          else
+            ERRORS="${ERRORS}\n- Adicione event listeners"
+          fi
+          
+          # Manipulação DOM
+          if grep -q 'getElementById' "$FILE" || grep -q 'querySelector' "$FILE"; then
+            echo "✅ Manipulação DOM presente"
+            SCORE=$((SCORE + 5))
+          else
+            ERRORS="${ERRORS}\n- Use métodos de seleção DOM"
+          fi
+          
+          # Status code exibido
+          if grep -q 'status' "$FILE"; then
+            echo "✅ Status code tratado"
+            SCORE=$((SCORE + 5))
+          else
+            ERRORS="${ERRORS}\n- Exiba o status code da resposta"
+          fi
+          
+          # Código não está só comentado
+          TODO_COUNT=$(grep -c 'TODO' "$FILE" || echo "0")
+          if [ "$TODO_COUNT" -lt 5 ]; then
+            echo "✅ Código implementado (poucos TODOs)"
+            SCORE=$((SCORE + 10))
+          else
+            ERRORS="${ERRORS}\n- Implemente o código (muitos TODOs restantes)"
+          fi
+          
+          echo "score=$SCORE" >> $GITHUB_OUTPUT
+          echo "errors<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$ERRORS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      
+      - name: Validar CSS
+        id: validate-css
+        run: |
+          FILE="exercicios/aula02/style.css"
+          SCORE=0
+          
+          # Arquivo não vazio
+          if [ -s "$FILE" ]; then
+            echo "✅ CSS não está vazio"
+            SCORE=$((SCORE + 5))
+          fi
+          
+          # Cards ou layout
+          if grep -q '.user-card' "$FILE" || grep -q 'grid' "$FILE"; then
+            echo "✅ Layout de cards implementado"
+            SCORE=$((SCORE + 5))
+          fi
+          
+          # Responsividade
+          if grep -q '@media' "$FILE"; then
+            echo "✅ Media queries presentes"
+            SCORE=$((SCORE + 5))
+          fi
+          
+          # Loading
+          if grep -q '.hidden' "$FILE" || grep -q '#loading' "$FILE"; then
+            echo "✅ Estilo de loading presente"
+            SCORE=$((SCORE + 5))
+          fi
+          
+          echo "score=$SCORE" >> $GITHUB_OUTPUT
+      
+      - name: Calcular score total
+        id: calc-score
+        run: |
+          FILE_SCORE=${{ steps.check-files.outputs.score }}
+          HTML_SCORE=${{ steps.validate-html.outputs.score }}
+          JS_SCORE=${{ steps.validate-js.outputs.score }}
+          CSS_SCORE=${{ steps.validate-css.outputs.score }}
+          
+          TOTAL=$((FILE_SCORE + HTML_SCORE + JS_SCORE + CSS_SCORE))
+          
+          echo "📊 Pontuação:"
+          echo "  Arquivos: $FILE_SCORE/30"
+          echo "  HTML: $HTML_SCORE/30"
+          echo "  JavaScript: $JS_SCORE/65"
+          echo "  CSS: $CSS_SCORE/20"
+          echo "  TOTAL: $TOTAL/145"
+          
+          # Normalizar para 100
+          NORMALIZED=$((TOTAL * 100 / 145))
+          
+          echo "score=$NORMALIZED" >> $GITHUB_OUTPUT
+          echo "total=$TOTAL" >> $GITHUB_OUTPUT
+      
+      - name: Comentar no PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const score = parseInt('${{ steps.calc-score.outputs.score }}');
+            const fileErrors = `${{ steps.check-files.outputs.errors }}`;
+            const htmlErrors = `${{ steps.validate-html.outputs.errors }}`;
+            const jsErrors = `${{ steps.validate-js.outputs.errors }}`;
+            
+            let emoji = '⭐';
+            let level = 'Regular';
+            if (score >= 90) {
+              emoji = '⭐⭐⭐';
+              level = 'Excelente';
+            } else if (score >= 70) {
+              emoji = '⭐⭐';
+              level = 'Bom';
+            } else if (score >= 50) {
+              emoji = '⭐';
+              level = 'Regular';
+            } else {
+              emoji = '❌';
+              level = 'Precisa melhorar';
+            }
+            
+            const allErrors = [fileErrors, htmlErrors, jsErrors].filter(e => e.trim()).join('\n');
+            
+            const body = `## 🤖 Validação Automática - Aula 02
+            
+            ### 📊 Resultado: ${score}/100 ${emoji}
+            **Nível:** ${level}
+            
+            **Detalhamento:**
+            - 📁 Estrutura de arquivos: ${{ steps.check-files.outputs.score }}/30
+            - 📝 HTML: ${{ steps.validate-html.outputs.score }}/30
+            - 💻 JavaScript: ${{ steps.validate-js.outputs.score }}/65
+            - 🎨 CSS: ${{ steps.validate-css.outputs.score }}/20
+            
+            ${allErrors ? '### ❌ Problemas Encontrados:\n' + allErrors : '### ✅ Todos os requisitos atendidos!'}
+            
+            ${score >= 70 ? '🎉 Ótimo trabalho! Seu exercício está aprovado.' : '📝 Corrija os problemas acima e faça um novo push.'}
+            
+            ---
+            
+            ### 💡 Dicas:
+            - Teste sua aplicação no navegador (abra index.html)
+            - Use DevTools Console (F12) para ver erros JavaScript
+            - Verifique se fetch() está funcionando
+            - Confirme que usuários aparecem na tela ao clicar no botão
+            
+            ### 📚 Recursos:
+            - [JSONPlaceholder API](https://jsonplaceholder.typicode.com/)
+            - [MDN - Fetch API](https://developer.mozilla.org/pt-BR/docs/Web/API/Fetch_API)
+            - [Slides da Aula 2](../../slides/aula02/)
+            
+            _Validação executada em: ${new Date().toLocaleString('pt-BR')}_`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+      
+      - name: Definir status do check
+        if: steps.calc-score.outputs.score < 70
+        run: |
+          echo "❌ Score abaixo de 70. PR precisa de melhorias."
+          exit 1

@@ -1,0 +1,190 @@
+name: Atualizar Ranking
+
+on:
+  schedule:
+    - cron: '0 0 * * 1'  # Toda segunda 00:00 UTC
+  workflow_dispatch:  # Permite execução manual
+
+jobs:
+  update-ranking:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+      pull-requests: read
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      
+      - name: Coletar dados dos PRs
+        id: collect-data
+        uses: actions/github-script@v6
+        with:
+          script: |
+            // Buscar todos PRs merged
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'closed',
+              per_page: 100
+            });
+            
+            const mergedPRs = prs.filter(pr => pr.merged_at);
+            
+            // Extrair scores dos comentários do bot
+            const students = {};
+            
+            for (const pr of mergedPRs) {
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number
+              });
+              
+              // Buscar comentário do bot com score
+              const botComment = comments.find(c => 
+                c.user.login === 'github-actions[bot]' && 
+                c.body.includes('Validação Automática')
+              );
+              
+              if (botComment) {
+                const scoreMatch = botComment.body.match(/Resultado: (\d+)\/100/);
+                if (scoreMatch) {
+                  const score = parseInt(scoreMatch[1]);
+                  const titleMatch = pr.title.match(/\[Aula (\d+)\]\s*(.+)/);
+                  
+                  if (titleMatch) {
+                    const aula = titleMatch[1];
+                    const nome = titleMatch[2].trim();
+                    
+                    if (!students[nome]) {
+                      students[nome] = {
+                        name: nome,
+                        scores: {},
+                        totalScore: 0,
+                        exercisesCompleted: 0,
+                        username: pr.user.login,
+                        avatar: pr.user.avatar_url
+                      };
+                    }
+                    
+                    students[nome].scores[`aula${aula}`] = score;
+                    students[nome].totalScore += score;
+                    students[nome].exercisesCompleted++;
+                  }
+                }
+              }
+            }
+            
+            // Calcular média e ordenar
+            const ranking = Object.values(students).map(student => ({
+              ...student,
+              avgScore: student.exercisesCompleted > 0 
+                ? (student.totalScore / student.exercisesCompleted).toFixed(1)
+                : 0
+            })).sort((a, b) => parseFloat(b.avgScore) - parseFloat(a.avgScore));
+            
+            // Salvar em arquivo
+            const fs = require('fs');
+            fs.writeFileSync('ranking-data.json', JSON.stringify(ranking, null, 2));
+            
+            return { count: ranking.length };
+      
+      - name: Gerar README com Ranking
+        run: |
+          python3 << 'PYTHON_SCRIPT'
+          import json
+          from datetime import datetime
+          
+          with open('ranking-data.json', 'r') as f:
+              ranking = json.load(f)
+          
+          medals = ['🥇', '🥈', '🥉']
+          
+          readme = f"""# 🏆 Ranking de Alunos - Desenvolvimento Web 2026.1
+          
+          **Atualizado em:** {datetime.now().strftime('%d/%m/%Y %H:%M')} UTC
+          
+          ## 📊 Top 20 Alunos
+          
+          | Posição | Aluno | Exercícios | Média | Pontuação Total |
+          |---------|-------|------------|-------|-----------------|
+          """
+          
+          for i, student in enumerate(ranking[:20], 1):
+              medal = medals[i-1] if i <= 3 else f"{i}️⃣"
+              name = student['name']
+              exercises = student['exercisesCompleted']
+              avg = student['avgScore']
+              total = student['totalScore']
+              
+              readme += f"| {medal} | {name} | {exercises} | {avg} | {total} |\n"
+          
+          readme += f"""
+          
+          ## 📈 Estatísticas Gerais
+          
+          - **Total de alunos:** {len(ranking)}
+          - **Exercícios submetidos:** {sum(s['exercisesCompleted'] for s in ranking)}
+          - **Média geral da turma:** {sum(float(s['avgScore']) for s in ranking) / len(ranking):.1f}
+          
+          ## 🎖️ Badges de Conquistas
+          
+          ### ⭐ Excelência (Média ≥ 90)
+          """
+          
+          excelentes = [s['name'] for s in ranking if float(s['avgScore']) >= 90]
+          if excelentes:
+              readme += '\n' + ', '.join(excelentes) + '\n'
+          else:
+              readme += '\n_Nenhum aluno ainda_\n'
+          
+          readme += """
+          ### 💪 Dedicação (10+ exercícios)
+          """
+          
+          dedicados = [s['name'] for s in ranking if s['exercisesCompleted'] >= 10]
+          if dedicados:
+              readme += '\n' + ', '.join(dedicados) + '\n'
+          else:
+              readme += '\n_Nenhum aluno ainda_\n'
+          
+          readme += """
+          ### 🚀 Primeira Entrega (Primeiro a submeter cada aula)
+          
+          _Em desenvolvimento_
+          
+          ---
+          
+          ## 📝 Como Melhorar Sua Posição
+          
+          1. **Complete mais exercícios** - Cada aula vale 100 pontos
+          2. **Capriche no código** - Boas práticas aumentam sua nota
+          3. **Seja criativo** - Bônus para soluções diferenciadas
+          4. **Entregue no prazo** - Penalização por atraso
+          5. **Ajude colegas** - Abra Issues, responda dúvidas
+          
+          ---
+          
+          _Ranking atualizado automaticamente toda segunda-feira._
+          """
+          
+          with open('RANKING.md', 'w') as f:
+              f.write(readme)
+          
+          print("✅ Ranking gerado com sucesso!")
+          PYTHON_SCRIPT
+      
+      - name: Commit e Push
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add RANKING.md ranking-data.json
+          git diff --quiet && git diff --staged --quiet || git commit -m "chore: atualizar ranking automático"
+          git push
