@@ -17,10 +17,10 @@ jobs:
         with:
           python-version: '3.10'
       
-      - name: Instalar dependências
+      - name: Install dependencies
         run: pip install -r requirements.txt
       
-      - name: Detectar similaridade entre códigos
+      - name: Detect similarity in code submissions
         id: plagiarism-check
         run: |
           python3 << 'PYTHON_SCRIPT'
@@ -30,50 +30,42 @@ jobs:
           from pathlib import Path
 
           def normalize_code(code):
-              """Normalize code by removing comments, extra spaces, and lowering case."""
-              code = re.sub(r'<!--.*?-->', '', code, flags=re.DOTALL)  # Remove HTML comments
-              code = re.sub(r'//.*?', '', code, flags=re.MULTILINE)  # Remove JS comments
-              code = re.sub(r'/\*.*?\*/', '', code, flags=re.DOTALL)  # Remove multiline comments
-              code = re.sub(r'\s+', ' ', code)  # Remove extra spaces
-              return code.lower().strip()
+              """Normalize code: remove comments, spaces, and lowercase."""
+              code = re.sub(r'<!--.*?-->', '', code, flags=re.DOTALL)  # HTML comments
+              code = re.sub(r'//.*?', '', code, flags=re.MULTILINE)  # Single-line comments
+              code = re.sub(r'/\*.*?\*/', '', code, flags=re.DOTALL)  # Multiline comments
+              code = re.sub(r'\s+', ' ', code).strip()  # Extra spaces
+              return code.lower()
 
           def calculate_similarity(code1, code2):
-              """Calculate similarity between two normalized code strings."""
-              matcher = difflib.SequenceMatcher(None, normalize_code(code1), normalize_code(code2))
-              return matcher.ratio() * 100
+              """Compare two code strings for similarity."""
+              return difflib.SequenceMatcher(None, code1, code2).ratio() * 100
 
-          submissions = {}
           suspicious = []
           THRESHOLD = 85
+          base_dir = Path('exercicios')
 
-          exercicios_dir = Path('exercicios')
-          for aula_dir in exercicios_dir.glob('aula*/'):
-              for file_type in ['index.html', 'script.js', 'style.css']:
-                  file_path = aula_dir / file_type
-                  if file_path.exists():
-                      with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                          submissions[file_path] = f.read()
+          # Load submissions
+          submissions = {
+              str(file): file.read_text(errors='ignore')
+              for file in base_dir.rglob('*.{html,js,css}') if file.is_file()
+          }
 
           for file, content in submissions.items():
-              if 'TODO' in content:
-                  suspicious.append({
-                      'file': str(file),
-                      'reason': 'Template not implemented (contains TODO)'
-                  })
+              similarity = calculate_similarity(content, 'template code...')
+              if 'TODO' in content or similarity > THRESHOLD:
+                  suspicious.append(file)
 
-          if suspicious:
-              print("⚠️ Suspicious code detected:")
-              for suspect in suspicious:
-                  print(f"  - {suspect['file']}: {suspect['reason']}")
-              with open(os.getenv('GITHUB_OUTPUT'), 'a') as output:
-                  output.write("suspicious=true\n")
-          else:
-              print("✅ No suspicious code detected.")
-              with open(os.getenv('GITHUB_OUTPUT'), 'a') as output:
-                  output.write("suspicious=false\n")
+          github_output = os.getenv('GITHUB_OUTPUT', '/dev/stdout')
+          with open(github_output, 'a') as fh:
+              if suspicious:
+                  fh.write('suspicious=true\n')
+                  print(suspicious)
+              else:
+                  fh.write('suspicious=false\n')
           PYTHON_SCRIPT
 
-      - name: Comment on Suspicious Code
+      - name: Post findings if any issues detected
         if: steps.plagiarism-check.outputs.suspicious == 'true'
         uses: actions/github-script@v6
         with:
@@ -82,5 +74,5 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `⚠️ Suspicious code detected. Please review your submission and ensure code is original and complete.`
+              body: 'Submissions flagged for potential plagiarism.'
             });
